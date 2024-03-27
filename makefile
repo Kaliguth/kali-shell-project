@@ -29,8 +29,8 @@ all: clean kaliShell
 	./kaliShell
 
 # Executable target - Creates executable file from kaliShell.o and kaliFunctions.o object files.
-kaliShell: kaliShell.o kaliFunctions.o
-	$(CC) $(FLAGS) -o kaliShell kaliShell.o kaliFunctions.o
+kaliShell: kaliShell.o kaliFunctions.o assistFunctions.o
+	$(CC) $(FLAGS) -o kaliShell kaliShell.o kaliFunctions.o assistFunctions.o
 
 # Main app file object file target - Creates kaliShell.o and specifies dependecies and rules.
 kaliShell.o: kaliShell.c kaliShell.h
@@ -39,6 +39,10 @@ kaliShell.o: kaliShell.c kaliShell.h
 # Functions source object file dependecies and rules.
 kaliFunctions.o: kaliFunctions.c kaliFunctions.h
 	$(CC) $(FLAGS) -c kaliFunctions.c
+
+# Assist functions source object file dependencties and rules.
+assistFunctions.o: assistFunctions.c assistFunctions.h
+	$(CC) $(FLAGS) -c assistFunctions.c
 
 # Clean target - Removes all object files and executable file.
 clean:

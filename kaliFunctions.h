@@ -1,10 +1,11 @@
-// Source file header for declaring functions and variables
+// Main source file header for declaring functions and variables
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <dirent.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 
@@ -19,4 +20,7 @@ char *getInputFromUser();
 char **splitArguments(char *);
 
 void getLocation();
-void logout(char *);
+void ls();
+void cd(char **);
+void cp(char **arguments);
+void logout();

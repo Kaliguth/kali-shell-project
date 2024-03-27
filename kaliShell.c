@@ -1,6 +1,7 @@
 // Main app file
 #include "kaliShell.h"
 #include "kaliFunctions.h"
+#include "assistFunctions.h"
 
 // IMPORTANT!
 // All commands are case sensitive and are only activated when lower cased
@@ -12,22 +13,64 @@ int main()
     {
         getLocation();
         char *input = getInputFromUser();
-        char **arguments = splitArguments(input);
-        if (strcmp(input, "exit") == 0 || strncmp(input, "exit ", 5) == 0)
+        char *trimmedInput = trimWhitespaces(input);
+        char **arguments = splitArguments(trimmedInput);
+
+        // Count the number of arguments in input
+        int numberOfArguments = 0;
+        while (arguments[numberOfArguments] != NULL)
         {
-            logout(input);
+            numberOfArguments++;
+        }
+
+        // If input is empty (no arguments), free all and continue to next iteration
+        if (numberOfArguments == 0)
+        {
+            free(input);
+            free(arguments);
+            continue;
+        }
+
+        if (strcmp(trimmedInput, "exit") == 0 && arguments[1] == NULL)
+        {
+            logout();
+            free(input);
+            free(arguments);
+        }
+        else if (strcmp(trimmedInput, "ls") == 0)
+        {
+            ls();
+        }
+        else if (strcmp(trimmedInput, "cd") == 0)
+        {
+            cd(arguments);
+        } else if (strcmp(trimmedInput, "cp") == 0) {
+            cp(arguments);
         }
         else
         {
-            printf("%s: command not found\n", input);
+            // Command not found message:
+            // Create a string of all arguments
+            char allArguments[100];
+            // Copy first argument into it
+            strcpy(allArguments, arguments[0]);
+
+            // Add rest of arguments into allArguments string
+            for (int i = 1; arguments[i] != NULL; i++)
+            {
+                strcat(allArguments, " ");          // Seperate by space
+                strcat(allArguments, arguments[i]); // Add current argument to allArguments string
+            }
+
+            // Print all arguments for command not found message
+            printf("%s: Command not found\n", allArguments);
         }
-        // char **arguments = splitArguments(input);
 
         free(arguments);
         free(input);
     }
 
-    return 1;
+    return 0;
 }
 
 void welcome()
