@@ -46,7 +46,7 @@ bool containsSlash(char *str)
     return false; // Return false if no slash is found
 }
 
-// Function to check if given arguments array contains pipe
+// Function to check if given arguments array contains pipe symbol
 bool containsPipe(char **args)
 {
     // Go over args array
@@ -59,4 +59,32 @@ bool containsPipe(char **args)
         }
     }
     return false; // Return false if pipe symbol is not found
+}
+
+// Function to check if given arguments array contains append symbol
+bool containsAppend(char **args) {
+    // Go over args array
+    for (int i = 0; args[i] != NULL; i++)
+    {
+        // Check if the current argument is the append symbol
+        if (strcmp(args[i], ">>") == 0)
+        {
+            return true; // Return true if append symbol is found
+        }
+    }
+    return false; // Return false if append symbol is not found
+}
+
+// Function to check if given arguments array contains write symbol
+bool containsWrite(char **args) {
+    // Go over args array
+    for (int i = 0; args[i] != NULL; i++)
+    {
+        // Check if the current argument is the write symbol
+        if (strcmp(args[i], ">") == 0)
+        {
+            return true; // Return true if write symbol is found
+        }
+    }
+    return false; // Return false if write symbol is not found
 }

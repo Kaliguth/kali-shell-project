@@ -149,27 +149,6 @@ char **splitArguments(char *str)
     // Indicates the end of arguments
     *(arguments + (index + 1)) = NULL;
 
-    // Test split arguments by printing them:
-    printf("Split arguments: ");
-
-    // If there are no arguments
-    if (arguments[0] == NULL)
-        puts("No arguments");
-
-    for (int i = 0; arguments[i] != NULL; i++)
-    {
-        if (arguments[i + 1] != NULL) // If next argument is not NULL
-        {
-            printf("%s, ", arguments[i]);
-            // Prints current argument
-        }
-        else // If next argument is NULL (next argument is the added NULL)
-        {
-            printf("%s, %s\n", arguments[i], arguments[i + 1]);
-            // Prints current argument and and last argument (NULL)
-        }
-    }
-
     return arguments;
 }
 
@@ -298,7 +277,6 @@ void cd(char **args)
         }
         else
         {
-            printf("Path: %s\n", newPath);
             // Check if the specified path exists
             if (chdir(newPath) != 0)
             {
@@ -331,7 +309,6 @@ void cd(char **args)
         }
         newPath[strlen(newPath) - 1] = '\0'; // Remove last quote ('"') from end of path string
 
-        printf("%s\n", newPath);
         // Change directory to the extracted folder name
         if (chdir(newPath) != 0)
         {
@@ -452,8 +429,6 @@ void cp(char **args)
         // Remove last quote ('"') from end of source string
         source[strlen(source) - 1] = '\0';
 
-        printf("Source: %s\n", source);
-
         // Open source file for reading using source string
         if ((src = fopen(source, "r")) == NULL)
         {
@@ -484,8 +459,8 @@ void cp(char **args)
             return;
         }
     }
-    // Destination file with quotes ("") - File name with spaces
-    // Destination starts and ends with quotes
+    // Destination file with quotes ('"') - File name with spaces
+    // args in DestinationIndex starts with quote and last argument ends with quote
     // Example input: cp source "destination file"
     else if (strncmp(args[destinationIndex], "\"", 1) == 0 && lastArgument[strlen(lastArgument) - 1] == '\"')
     {
@@ -640,7 +615,6 @@ void delete(char **args)
             strcat(path, pathCopy);
         }
 
-        printf("path: %s\n", path);
         // Delete file or folder in path given
         if (unlink(path) != 0)
         {
@@ -736,7 +710,7 @@ void move(char **args)
     }
     if (args[2] == NULL)
     {
-        puts("kaliShell: move: Destination not provided");
+        puts("kaliShell: move: No Destination provided");
         return;
     }
 
@@ -756,16 +730,9 @@ void move(char **args)
     // Find last file name index if file starts with quote
     if (strncmp(args[1], "\"", 1) == 0 && args[1][strlen(args[1]) - 1] != '\"')
     {
-        for (int i = 1; args[i][strlen(args[i]) - 1] != '\"' && args[i + 1] != NULL; i++)
+        for (int i = 2; args[i][strlen(args[i]) - 1] != '\"' && args[i + 1] != NULL; i++)
         {
             lastFileIndex++;
-        }
-
-        // If last file name index reached last argument - invalid source name format
-        if (args[lastFileIndex] == lastArgument)
-        {
-            puts("kaliShell: move: Invalid file name format");
-            return;
         }
     }
 
@@ -776,7 +743,7 @@ void move(char **args)
         // Example inputs: 'move file" destination' or 'move file destination"'
         if (args[1][strlen(args[1]) - 1] == '\"' || args[2][strlen(args[2]) - 1] == '\"')
         {
-            puts("kaliShell: move: Invalid file name format");
+            puts("kaliShell: move: Invalid file name or destination path format");
             return;
         }
 
@@ -798,7 +765,7 @@ void move(char **args)
         strcpy(file, args[1]);
     }
     // File name with quotes ('"') - File name with spaces
-    // and is not a single argument file name (check with last source index)
+    // and is not a single argument file name
     // Example input: move "file name" destination
     else if (strncmp(args[1], "\"", 1) == 0)
     {
@@ -824,21 +791,693 @@ void move(char **args)
         }
         // Remove last quote ('"') from end of file string
         file[strlen(file) - 1] = '\0';
-
-        printf("File: %s\n", file);
-
-        // Open source file for reading using source string
-        if ((src = fopen(source, "r")) == NULL)
-        {
-            printf("kaliShell: cp: Error reading file '%s'\n", source);
-            return;
-        }
     }
     else
     {
-        puts("kaliShell: cp: Invalid source file name format");
+        puts("kaliShell: move: Invalid file name format");
         return;
     }
+
+    // Decalre destination index variable (one argument after file)
+    int destinationIndex = lastFileIndex + 1;
+
+    // Destination without quotes ('"') - Folder path without spaces
+    // Does not start or end with quotes
+    // and destination argument is the last argument
+    // Example input: move file destination
+    if (strncmp(args[destinationIndex], "\"", 1) != 0 && lastArgument[strlen(args[destinationIndex]) - 1] != '\"' && args[destinationIndex] == lastArgument)
+    {
+        // Copy destination provided in args[destionationIndex] into destination variable
+        strcpy(destination, args[destinationIndex]);
+    }
+    // Destination with quotes ('"') - Folder path with spaces
+    // args in DestinationIndex starts with quote and last argument ends with quote
+    // Example input: move file "destination path"
+    else if (strncmp(args[destinationIndex], "\"", 1) == 0 && lastArgument[strlen(lastArgument) - 1] == '\"')
+    {
+        // Add first destination argument to destination string excluding the first quote
+        strcpy(destination, args[destinationIndex] + 1);
+
+        // If current destination string does not end with quote
+        if (destination[strlen(destination) - 1] != '\"')
+        {
+            // Add more arguments to destination string as long as previous argument did not end in quote
+            for (int i = destinationIndex + 1; args[i - 1][strlen(args[i - 1]) - 1] != '\"'; i++)
+            {
+                strcat(destination, " ");     // Add space between arguments
+                strcat(destination, args[i]); // Add current argument
+            }
+        }
+        // Remove last quote ('"') from end of destination string
+        destination[strlen(destination) - 1] = '\0';
+    }
+    else
+    {
+        puts("kaliShell: move: Invalid destination path format");
+        return;
+    }
+
+    // If file given as path
+    // Example: move folder1/folder2/file "new path"
+    // File name string to add to new destination string
+    char fileName[BUFF_SIZE];
+    // Copy original file string to it in case it does not contain slashes
+    strcpy(fileName, file);
+    if (containsSlash(file))
+    {
+        // Find last slash index in file string
+        int lastSlashIndex = 0;
+        for (int i = 0; file[i] != '\0'; i++)
+        {
+            if (file[i] == '/')
+            {
+                lastSlashIndex = i;
+            }
+        }
+        // Move the pointer of file to the char after the last slash
+        int j = 0;
+        for (int i = lastSlashIndex + 1; file[i] != '\0'; i++)
+        {
+            fileName[j] = file[i];
+            j++;
+        }
+        // Change char after file name to \0 to indicate end of string
+        fileName[j] = '\0';
+    }
+
+    // Create a new destination string including the folder and file name
+    char newDest[BUFF_SIZE];
+    snprintf(newDest, sizeof(newDest), "/%s/%s", destination, fileName);
+
+    // Add slash to the beginning of file string - Path format for rename
+    memmove(file + 1, file, strlen(file) + 1);
+    file[0] = '/';
+
+    // Use the rename function to move the file
+    if (rename(file, newDest) != 0)
+    {
+        // If file name or folder name are not found
+        puts("kaliShell: move: No such file or directory");
+    }
+}
+
+// echoappend - Function to add text into a text file
+void echoappend(char **args)
+{
+    // Check if second argument is append symbol
+    if (strcmp(args[1], ">>") == 0)
+    {
+        puts("kaliShell: echoappend: No text provided");
+        return;
+    }
+
+    // Find append symbol index in args
+    int appendIndex = 1;
+    for (int i = 2; args[i] != NULL; i++)
+    {
+        if (strcmp(args[i], ">>") == 0)
+        {
+            appendIndex = i;
+            break;
+        }
+    }
+
+    // Check if file provided after append symbol
+    if (args[appendIndex + 1] == NULL)
+    {
+        puts("kaliShell: echoappend: No file provided");
+        return;
+    }
+    // Declare file index variable
+    int fileIndex = appendIndex + 1;
+
+    // Get last argument in args to later check if ends with quote ('"')
+    char *lastArgument = NULL;
+    for (int i = 1; args[i] != NULL; i++)
+    {
+        lastArgument = args[i];
+    }
+
+    // Allocate memory for text to append and file path (for text and file path with spaces)
+    char text[BUFF_SIZE];
+    char filePath[BUFF_SIZE];
+
+    // Declare last text index variable
+    int lastTextIndex = 1;
+    // Find last text index
+    if (strncmp(args[1], "\"", 1) == 0 && args[1][strlen(args[1]) - 1] != '\"')
+    {
+        for (int i = 2; i < appendIndex; i++)
+        {
+            lastTextIndex++;
+        }
+
+        // If last text index argument does not end with with quote - invalid append format
+        if (args[lastTextIndex][strlen(args[lastTextIndex]) - 1] != '\"')
+        {
+            puts("kaliShell: echoappend: Invalid text format");
+            return;
+        }
+    }
+
+    // Error handling if both text and file don't start with quotes ('"')
+    if (strncmp(args[1], "\"", 1) != 0 && strncmp(args[fileIndex], "\"", 1) != 0)
+    {
+        // Any of them end with quote
+        // Example inputs: 'echo text" >> file' or 'echo file >> file"'
+        if (args[1][strlen(args[1]) - 1] == '\"' || args[fileIndex][strlen(args[fileIndex]) - 1] == '\"')
+        {
+            puts("kaliShell: echoappend: Invalid text or file path format");
+            return;
+        }
+
+        // More than four arguments inputed
+        // Example input: echo text >> file hello
+        if (args[4] != NULL)
+        {
+            puts("kaliShell: echoappend: Too many arguments");
+            return;
+        }
+    }
+
+    // Text without quotes ('"') - text without spaces
+    // Does not start or end with quotes
+    // Example input: echo text >> file
+    if (strncmp(args[1], "\"", 1) != 0 && args[1][strlen(args[1]) - 1] != '\"')
+    {
+        // Copy text provided in args[1] into text variable
+        strcpy(text, args[1]);
+    }
+    // Text with quotes ('"') - Text with spaces
+    // and is not a single argument text
+    // Example input: echo "text here" >> file
+    else
+    {
+        // Add first argument to text string excluding the first quote
+        strcpy(text, args[1] + 1);
+
+        // If current text string does not end with quote
+        if (text[strlen(text) - 1] != '\"')
+        {
+            // Add more arguments to text string as long as previous argument did not end in quote
+            for (int i = 2; args[i - 1][strlen(args[i - 1]) - 1] != '\"'; i++)
+            {
+                strcat(text, " ");     // Add space between arguments
+                strcat(text, args[i]); // Add current argument
+            }
+        }
+
+        // Error handling if text does not end with quote
+        if (text[strlen(text) - 1] != '\"')
+        {
+            puts("kaliShell: echoappend: Invalid text format");
+            return;
+        }
+        // Remove last quote ('"') from end of text string
+        text[strlen(text) - 1] = '\0';
+    }
+
+    // File path without quotes ('"') - File path without spaces
+    // Does not start or end with quotes
+    // and file path argument is the last argument
+    // Example input: echo text >> file
+    if (strncmp(args[fileIndex], "\"", 1) != 0 && lastArgument[strlen(args[fileIndex]) - 1] != '\"' && args[fileIndex] == lastArgument)
+    {
+        // Copy file provided in args[fileIndex] into file variable
+        strcpy(filePath, args[fileIndex]);
+    }
+    // File path with quotes ('"') - File path with spaces
+    // args in fileIndex starts with quote and last argument ends with quote
+    // Example input: echo text >> "file path"
+    else if (strncmp(args[fileIndex], "\"", 1) == 0 && lastArgument[strlen(lastArgument) - 1] == '\"')
+    {
+        // Add first file path argument to file string excluding the first quote
+        strcpy(filePath, args[fileIndex] + 1);
+
+        // If current file string does not end with quote
+        if (filePath[strlen(filePath) - 1] != '\"')
+        {
+            // Add more arguments to file string as long as previous argument did not end in quote
+            for (int i = fileIndex + 1; args[i - 1][strlen(args[i - 1]) - 1] != '\"'; i++)
+            {
+                strcat(filePath, " ");     // Add space between arguments
+                strcat(filePath, args[i]); // Add current argument
+            }
+        }
+        // Remove last quote ('"') from end of file string
+        filePath[strlen(filePath) - 1] = '\0';
+    }
+    else
+    {
+        puts("kaliShell: echoappend: Invalid file path format");
+        return;
+    }
+
+    // If file given as path
+    // Example: echo text >> folder1/folder2/file
+    if (containsSlash(filePath))
+    {
+        // Add slash to the beginning of file string - Path format for appending
+        memmove(filePath + 1, filePath, strlen(filePath) + 1);
+        filePath[0] = '/';
+    }
+
+    // Open the file in append mode
+    FILE *file = fopen(filePath, "a");
+    if (file == NULL)
+    {
+        puts("kaliShell: echoappend: Failed to open file");
+        return;
+    }
+
+    // Append the text to the file
+    fprintf(file, "%s\n", text);
+
+    // Close the file
+    fclose(file);
+}
+
+// echowrite - Function to overwrite all text in a text file
+void echowrite(char **args)
+{
+    // Check if second argument is write symbol
+    if (strcmp(args[1], ">") == 0)
+    {
+        puts("kaliShell: echowrite: No text provided");
+        return;
+    }
+
+    // Find write symbol index in args
+    int writeIndex = 1;
+    for (int i = 2; args[i] != NULL; i++)
+    {
+        if (strcmp(args[i], ">") == 0)
+        {
+            writeIndex = i;
+            break;
+        }
+    }
+
+    // Check if file provided after write symbol
+    if (args[writeIndex + 1] == NULL)
+    {
+        puts("kaliShell: echowrite: No file provided");
+        return;
+    }
+    // Declare file index variable
+    int fileIndex = writeIndex + 1;
+
+    // Get last argument in args to later check if ends with quote ('"')
+    char *lastArgument = NULL;
+    for (int i = 1; args[i] != NULL; i++)
+    {
+        lastArgument = args[i];
+    }
+
+    // Allocate memory for text to write and file path (for text and file path with spaces)
+    char text[BUFF_SIZE];
+    char filePath[BUFF_SIZE];
+
+    // Declare last text index variable
+    int lastTextIndex = 1;
+    // Find last text index
+    if (strncmp(args[1], "\"", 1) == 0 && args[1][strlen(args[1]) - 1] != '\"')
+    {
+        for (int i = 2; i < writeIndex; i++)
+        {
+            lastTextIndex++;
+        }
+
+        // If last text index argument does not end with with quote - invalid write format
+        if (args[lastTextIndex][strlen(args[lastTextIndex]) - 1] != '\"')
+        {
+            puts("kaliShell: echowrite: Invalid text format");
+            return;
+        }
+    }
+
+    // Error handling if both text and file don't start with quotes ('"')
+    if (strncmp(args[1], "\"", 1) != 0 && strncmp(args[fileIndex], "\"", 1) != 0)
+    {
+        // Any of them end with quote
+        // Example inputs: 'echo text" >> file' or 'echo file > file"'
+        if (args[1][strlen(args[1]) - 1] == '\"' || args[fileIndex][strlen(args[fileIndex]) - 1] == '\"')
+        {
+            puts("kaliShell: echowrite: Invalid text or file path format");
+            return;
+        }
+
+        // More than four arguments inputed
+        // Example input: echo text > file hello
+        if (args[4] != NULL)
+        {
+            puts("kaliShell: echowrite: Too many arguments");
+            return;
+        }
+    }
+
+    // Text without quotes ('"') - text without spaces
+    // Does not start or end with quotes
+    // Example input: echo text > file
+    if (strncmp(args[1], "\"", 1) != 0 && args[1][strlen(args[1]) - 1] != '\"')
+    {
+        // Copy text provided in args[1] into text variable
+        strcpy(text, args[1]);
+    }
+    // Text with quotes ('"') - Text with spaces
+    // and is not a single argument text
+    // Example input: echo "text here" > file
+    else
+    {
+        // Add first argument to text string excluding the first quote
+        strcpy(text, args[1] + 1);
+
+        // If current text string does not end with quote
+        if (text[strlen(text) - 1] != '\"')
+        {
+            // Add more arguments to text string as long as previous argument did not end in quote
+            for (int i = 2; args[i - 1][strlen(args[i - 1]) - 1] != '\"'; i++)
+            {
+                strcat(text, " ");     // Add space between arguments
+                strcat(text, args[i]); // Add current argument
+            }
+        }
+
+        // Error handling if text does not end with quote
+        if (text[strlen(text) - 1] != '\"')
+        {
+            puts("kaliShell: echowrite: Invalid text format");
+            return;
+        }
+        // Remove last quote ('"') from end of text string
+        text[strlen(text) - 1] = '\0';
+    }
+
+    // File path without quotes ('"') - File path without spaces
+    // Does not start or end with quotes
+    // and file path argument is the last argument
+    // Example input: echo text > file
+    if (strncmp(args[fileIndex], "\"", 1) != 0 && lastArgument[strlen(args[fileIndex]) - 1] != '\"' && args[fileIndex] == lastArgument)
+    {
+        // Copy file provided in args[fileIndex] into file variable
+        strcpy(filePath, args[fileIndex]);
+    }
+    // File path with quotes ('"') - File path with spaces
+    // args in fileIndex starts with quote and last argument ends with quote
+    // Example input: echo text > "file path"
+    else if (strncmp(args[fileIndex], "\"", 1) == 0 && lastArgument[strlen(lastArgument) - 1] == '\"')
+    {
+        // Add first file path argument to file string excluding the first quote
+        strcpy(filePath, args[fileIndex] + 1);
+
+        // If current file string does not end with quote
+        if (filePath[strlen(filePath) - 1] != '\"')
+        {
+            // Add more arguments to file string as long as previous argument did not end in quote
+            for (int i = fileIndex + 1; args[i - 1][strlen(args[i - 1]) - 1] != '\"'; i++)
+            {
+                strcat(filePath, " ");     // Add space between arguments
+                strcat(filePath, args[i]); // Add current argument
+            }
+        }
+        // Remove last quote ('"') from end of file string
+        filePath[strlen(filePath) - 1] = '\0';
+    }
+    else
+    {
+        puts("kaliShell: echowrite: Invalid file path format");
+        return;
+    }
+
+    // If file given as path
+    // Example: echo text > folder1/folder2/file
+    if (containsSlash(filePath))
+    {
+        // Add slash to the beginning of file string - Path format for writing
+        memmove(filePath + 1, filePath, strlen(filePath) + 1);
+        filePath[0] = '/';
+    }
+
+    // Open the file in write mode
+    FILE *file = fopen(filePath, "w");
+    if (file == NULL)
+    {
+        puts("kaliShell: echowrite: Failed to open file");
+        return;
+    }
+
+    // Write the text to the file
+    fprintf(file, "%s\n", text);
+
+    // Close the file
+    fclose(file);
+}
+
+// read - Function to read and print contents of text file
+void readfile(char **args)
+{
+    // Check if args has a second argument
+    if (args[1] == NULL)
+    {
+        puts("kaliShell: read: No file provided");
+        return;
+    }
+
+    // Get last argument in args to later check if ends with quote ('"')
+    char *lastArgument = NULL;
+    for (int i = 1; args[i] != NULL; i++)
+    {
+        lastArgument = args[i];
+    }
+
+    // Allocate memory for file path
+    char filePath[BUFF_SIZE];
+
+    // File without quotes ('"') - File path without spaces
+    // Does not start or end with quotes
+    // Example input: read file
+    if (strncmp(args[1], "\"", 1) != 0 && args[1][strlen(args[1]) - 1] != '\"')
+    {
+        if (args[2] != NULL)
+        {
+            puts("kaliShell: read: Too many arguments");
+            return;
+        }
+
+        // Copy file provided in args[1] into file path variable
+        strcpy(filePath, args[1]);
+    }
+    // File starts with quotes ('"') - File path with spaces
+    // and is not a single argument file path
+    // Example input: echo "text here" >> file
+    else if (strncmp(args[1], "\"", 1) == 0 && lastArgument[strlen(lastArgument) - 1] == '\"')
+    {
+        // Add first argument to file path string excluding the first quote
+        strcpy(filePath, args[1] + 1);
+
+        // If current file path string does not end with quote
+        if (filePath[strlen(filePath) - 1] != '\"')
+        {
+            // Add more arguments to file path string as long as previous argument did not end in quote
+            for (int i = 2; args[i - 1][strlen(args[i - 1]) - 1] != '\"'; i++)
+            {
+                strcat(filePath, " ");     // Add space between arguments
+                strcat(filePath, args[i]); // Add current argument
+            }
+        }
+        // Remove last quote ('"') from end of file path string
+        filePath[strlen(filePath) - 1] = '\0';
+    }
+    else
+    {
+        puts("kaliShell: read: Invalid file path format");
+        return;
+    }
+
+    // If file given as path
+    // Example: read folder1/folder2/file
+    if (containsSlash(filePath))
+    {
+        // Add slash to the beginning of file path string - Path format for reading
+        memmove(filePath + 1, filePath, strlen(filePath) + 1);
+        filePath[0] = '/';
+    }
+
+    // Open the file in read mode
+    FILE *file = fopen(filePath, "r");
+    if (file == NULL)
+    {
+        printf("kaliShell: read: '%s': File not found\n", filePath);
+        return;
+    }
+
+    // Read and print each character until the end of file
+    int character;
+    while ((character = fgetc(file)) != EOF)
+    {
+        putchar(character);
+    }
+    // Extra line for space from next command line
+    // (In case the file being read doesn't have an empty line at the end)
+    puts("");
+
+    // Close the file
+    fclose(file);
+}
+
+// wordcount - Function to count words or lines in a text file
+// Options: -l for lines or -w for words
+void wordcount(char **args)
+{
+    // Check if -l or -w options are provided in args[1]
+    if (args[1] == NULL)
+    {
+        puts("kaliShell: wordcount: No option provided. Please use -l for lines or -w for words");
+        return;
+    }
+    // If option provided in args[1] is invalid
+    if (strcmp(args[1], "-l") != 0 && strcmp(args[1], "-w") != 0)
+    {
+        puts("kaliShell: wordcount: Invalid option provided. Please use -l for lines or -w for words");
+        return;
+    }
+
+    // Check if args has a file argument
+    if (args[2] == NULL)
+    {
+        puts("kaliShell: wordcount: No file provided");
+        return;
+    }
+
+    // Get last argument in args to later check if ends with quote ('"')
+    char *lastArgument = NULL;
+    for (int i = 1; args[i] != NULL; i++)
+    {
+        lastArgument = args[i];
+    }
+
+    // Allocate memory for file path
+    char filePath[BUFF_SIZE];
+
+    // File without quotes ('"') - File path without spaces
+    // Does not start or end with quotes
+    // Example input: wordcount -l file
+    if (strncmp(args[2], "\"", 1) != 0 && args[2][strlen(args[2]) - 1] != '\"')
+    {
+        if (args[3] != NULL)
+        {
+            puts("kaliShell: wordcount: Too many arguments");
+            return;
+        }
+
+        // Copy file provided in args[2] into file path variable
+        strcpy(filePath, args[2]);
+    }
+    // File starts with quotes ('"') - File path with spaces
+    // and is not a single argument file path
+    // Example input: echo "text here" >> file
+    else if (strncmp(args[2], "\"", 1) == 0 && lastArgument[strlen(lastArgument) - 1] == '\"')
+    {
+        // Add first argument to file path string excluding the first quote
+        strcpy(filePath, args[2] + 1);
+
+        // If current file path string does not end with quote
+        if (filePath[strlen(filePath) - 1] != '\"')
+        {
+            // Add more arguments to file path string as long as previous argument did not end in quote
+            for (int i = 3; args[i - 1][strlen(args[i - 1]) - 1] != '\"'; i++)
+            {
+                strcat(filePath, " ");     // Add space between arguments
+                strcat(filePath, args[i]); // Add current argument
+            }
+        }
+        // Remove last quote ('"') from end of file path string
+        filePath[strlen(filePath) - 1] = '\0';
+    }
+    else
+    {
+        puts("kaliShell: wordcount: Invalid file path format");
+        return;
+    }
+
+    // If file given as path
+    // Example: wordcount -w folder1/folder2/file
+    if (containsSlash(filePath))
+    {
+        // Add slash to the beginning of file path string - Path format for reading
+        memmove(filePath + 1, filePath, strlen(filePath) + 1);
+        filePath[0] = '/';
+    }
+
+    // Open the file in read mode
+    FILE *file = fopen(filePath, "r");
+    if (file == NULL)
+    {
+        printf("kaliShell: wordcount: '%s': File not found\n", filePath);
+        return;
+    }
+
+    // If option provided is -l, count lines in the file
+    if (strcmp(args[1], "-l") == 0)
+    {
+        // Variable for lines
+        int lines = 1;
+        // Variable for current character
+        int character;
+        // Go over every character until the end of the file
+        while ((character = fgetc(file)) != EOF)
+        {
+            // If current character is newline
+            if (character == '\n')
+            {
+                lines++;
+            }
+        }
+
+        printf("Number of lines in file '%s': %d\n", filePath, lines);
+    }
+    // If option provided is -w, count words in the file
+    else
+    {
+        // Variable for words
+        int words = 0;
+        // Boolean flag to check if currently inside a word
+        int insideWord = 0;
+        // Variable for current character
+        int character;
+        // Go over every character until the end of the file
+        while ((character = fgetc(file)) != EOF)
+        {
+            // If current character is not space or newline
+            if (isspace(character))
+            {
+                if (insideWord) // If last character was inside a word
+                {
+                    words++;        // Add word count
+                    insideWord = 0; // Set word flag to indicate not inside a word
+                }
+            }
+            // If current character is a character
+            else
+            {
+                if (!insideWord) // If currently not inside a word
+                {
+                    insideWord = 1; // Set word flag to indicate not inside a word
+                }
+            }
+        }
+        // If file ended in a word and there was not space or new line
+        // Add another word
+        if (insideWord)
+        {
+            words++;
+        }
+
+        printf("Number of words in file '%s: %d\n", filePath, words);
+    }
+
+    // Close the file
+    fclose(file);
 }
 
 void logout()

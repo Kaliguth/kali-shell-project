@@ -9,7 +9,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-#define BUFF_SIZE 256
+#define BUFF_SIZE 512
 #define blue() printf("\033[0;34m")
 #define resetColor() printf("\033[0m")
 #define green() printf("\033[0;32m")
@@ -28,4 +28,8 @@ void cp(char **);
 void delete(char **);
 void mypipe(char **, char **);
 void move(char **);
+void echoappend(char **);
+void echowrite(char **);
+void readfile(char **);
+void wordcount(char **);
 void logout();

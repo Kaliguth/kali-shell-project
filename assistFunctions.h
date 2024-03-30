@@ -12,3 +12,5 @@
 char *trimWhitespaces(char *);
 bool containsSlash(char *);
 bool containsPipe(char **);
+bool containsAppend(char **);
+bool containsWrite(char **);

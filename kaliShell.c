@@ -64,9 +64,34 @@ int main()
         {
             ls();
         }
+        // Input starts with echo
         else if (strcmp(trimmedInput, "echo") == 0)
         {
-            echo(arguments);
+            // Regular echo - Print string
+            if (!containsAppend(arguments) && !containsWrite(arguments))
+            {
+                echo(arguments);
+            }
+            // Echo append
+            else if (containsAppend(arguments) && !containsWrite(arguments))
+            {
+                echoappend(arguments);
+            }
+            // Echo write
+            else if (containsWrite(arguments) && !containsAppend(arguments))
+            {
+                echowrite(arguments);
+            }
+        }
+        // Input starts with read
+        else if (strcmp(trimmedInput, "read") == 0)
+        {
+            readfile(arguments);
+        }
+        // Input starts with wordcount
+        else if (strcmp(trimmedInput, "wordcount") == 0)
+        {
+            wordcount(arguments);
         }
         // Input starts with cd
         else if (strcmp(trimmedInput, "cd") == 0)
@@ -83,6 +108,11 @@ int main()
         {
             delete (arguments);
         }
+        // Input starts with move
+        else if (strcmp(trimmedInput, "move") == 0)
+        {
+            move(arguments);
+        }
         // Handle piping
         else if (piping)
         {
@@ -90,6 +120,7 @@ int main()
             mypipe(arguments, arguments + piping + 1); // Call the function to handle piping
             wait(NULL);                                // Wait for child processes to finish
         }
+        // Command not found block
         else
         {
             // Print command not found message
@@ -116,9 +147,10 @@ int main()
     return 0;
 }
 
+// Welcome function
 void welcome()
 {
-    puts("\n⠀⠀⠀⣠⡾⠟⠛⠦⣄⠀⠀⠀⠀⠀⠀⠀     ⠀⠀⣀⡴⠾⠛⠳⣦");
+    puts("\n   ⣠⡾⠟⠛⠦⣄⠀⠀⠀⠀⠀⠀⠀     ⠀⠀⣀⡴⠾⠛⠳⣦");
     puts("⠀⠀⣰⡟⠀⢀⡀⠀⠈⠻⣶⣶⣾⣿⣟⣯⣽⠛⠿⣟⣻⣷⠚⠉⠀⡀⢀⠀⠘⡆");
     puts("⠀⠀⢹⡅⠀⣾⣧⢄⣴⡾⠙⢋⣥⡠⢿⣏⡿⠷⠀⢶⣌⡉⠀⠀⢳⣿⣿⡆⣸⡇");
     puts("⠀⠀⠘⣷⣦⣿⠇⠈⢁⣠⣴⣿⣵⡟⠚⢛⡏⠂⠰⣶⣦⡙⠳⢤⡀⠉⢿⣿⡟");
