@@ -12,9 +12,30 @@ int main()
     while (1)
     {
         getLocation();
+        // Pipe index variable
+        int piping = 0;
+        // Coolect user input into variable
         char *input = getInputFromUser();
+        // Trim white spaces from input into a new variable
         char *trimmedInput = trimWhitespaces(input);
+        // Split input into arguments array
         char **arguments = splitArguments(trimmedInput);
+
+        // Check if there is pipe in input
+        if (containsPipe(arguments))
+        {
+            // If it does, get the index of pipe inside arguments array
+            int i = 0;
+            while (arguments[i] != NULL)
+            {
+                if (strcmp(arguments[i], "|") == 0)
+                {
+                    piping = i;
+                    break;
+                }
+                i++;
+            }
+        }
 
         // Count the number of arguments in input
         int numberOfArguments = 0;
@@ -31,25 +52,47 @@ int main()
             continue;
         }
 
+        // Input is exit and is the only argument
         if (strcmp(trimmedInput, "exit") == 0 && arguments[1] == NULL)
         {
             logout();
             free(input);
             free(arguments);
         }
-        else if (strcmp(trimmedInput, "ls") == 0)
+        // Input is ls and is the only argument
+        else if (strcmp(trimmedInput, "ls") == 0 && arguments[1] == NULL)
         {
             ls();
         }
+        else if (strcmp(trimmedInput, "echo") == 0)
+        {
+            echo(arguments);
+        }
+        // Input starts with cd
         else if (strcmp(trimmedInput, "cd") == 0)
         {
             cd(arguments);
-        } else if (strcmp(trimmedInput, "cp") == 0) {
+        }
+        // Input starts with cp
+        else if (strcmp(trimmedInput, "cp") == 0)
+        {
             cp(arguments);
+        }
+        // Input starts with delete
+        else if (strcmp(trimmedInput, "delete") == 0)
+        {
+            delete (arguments);
+        }
+        // Handle piping
+        else if (piping)
+        {
+            arguments[piping] = NULL;                  // Null terminate the first command's arguments at the pipe symbol
+            mypipe(arguments, arguments + piping + 1); // Call the function to handle piping
+            wait(NULL);                                // Wait for child processes to finish
         }
         else
         {
-            // Command not found message:
+            // Print command not found message
             // Create a string of all arguments
             char allArguments[100];
             // Copy first argument into it
@@ -63,7 +106,7 @@ int main()
             }
 
             // Print all arguments for command not found message
-            printf("%s: Command not found\n", allArguments);
+            printf("kaliShell: %s: Command not found\n", allArguments);
         }
 
         free(arguments);

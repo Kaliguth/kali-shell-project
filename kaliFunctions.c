@@ -1,5 +1,6 @@
 // Main source file implementing functions
 #include "kaliFunctions.h"
+#include "assistFunctions.h"
 
 // Function to display the terminal line ("username@hostname:path$ ")
 void getLocation()
@@ -172,7 +173,15 @@ char **splitArguments(char *str)
     return arguments;
 }
 
-// ls function to show files in current working directory
+// echo - Function to print given input
+void echo(char **args)
+{
+    while (*(++args))
+        printf("%s ", *args);
+    puts("");
+}
+
+// ls - Function to show files in current working directory
 void ls()
 {
     // Open the current working directory
@@ -192,6 +201,32 @@ void ls()
 
     // Close the current working directory
     closedir(dir);
+}
+
+// grep - Function to print files or lines containing given string
+// This function is not used in main
+// mypipe of ls with grep uses external grep automatically
+void grep(char *str)
+{
+    // Error handling if grep string is null or empty
+    if (str == NULL || str[0] == '\0' || str[1])
+    {
+        puts("kaliShell: grep: No grep string provided\n");
+        return;
+    }
+
+    char line[BUFF_SIZE];
+
+    // Read lines from stdin until the end of the file
+    while (fgets(line, sizeof(line), stdin) != NULL)
+    {
+        // Search for the pattern in the line
+        if (strstr(line, str) != NULL)
+        {
+            // If pattern found, print the line
+            printf("%s", line);
+        }
+    }
 }
 
 // cd - Navigation
@@ -390,7 +425,7 @@ void cp(char **args)
         }
     }
     // Source file with quotes ('"') - File name with spaces
-    // and is not a single argument source (check with last source index)
+    // and is not a single argument source
     // Example input: cp "source file" destination
     else if (strncmp(args[1], "\"", 1) == 0)
     {
@@ -483,7 +518,7 @@ void cp(char **args)
         puts("kaliShell: cp: Invalid destination file name format");
         return;
     }
-    
+
     // Write contents of source file into destination file
     while ((ch = fgetc(src)) != EOF)
     {
@@ -493,6 +528,317 @@ void cp(char **args)
     // Close both files
     fclose(src);
     fclose(des);
+}
+
+// delete - Delete files or folders by path or file name
+void delete(char **args)
+{
+    // Check if args has arguments after "delete"
+    if (args[1] == NULL)
+    {
+        puts("kaliShell: delete: No file provided");
+        return;
+    }
+
+    // Find last argument value and index
+    char *lastArgument = args[1];
+    int lastArgumentIndex = 1;
+    for (int i = 2; args[i] != NULL; i++)
+    {
+        lastArgument = args[i];
+        lastArgumentIndex++;
+    }
+
+    // Declare variable for path
+    char path[BUFF_SIZE];
+
+    // Path does not start with quotes
+    // Example: delete file
+    if (strncmp(args[1], "\"", 1) != 0)
+    {
+        // Add args[1] to path string
+        strcpy(path, args[1]);
+
+        // Error handling:
+        // If more than one argument for path
+        // Example: delete file hello
+        if (lastArgumentIndex != 1)
+        {
+            puts("kaliShell: delete: Too many arguments");
+            return;
+        }
+        // If path ends with quotes
+        // Example: path/file"
+        if (args[1][strlen(args[1]) - 1] == '\"')
+        {
+            puts("kaliShell: delete: Invalid path or file name format");
+            return;
+        }
+
+        // If path contains slash (meaning a full file path)
+        // Example: mnt/d/Ariel/file
+        if (containsSlash(path))
+        {
+            // Move path one ahead and add slash to the beginning
+            memmove(path + 1, path, strlen(path) + 1);
+            path[0] = '/';
+        }
+        // If path does not contain slash (meaning file name in current folder)
+        // Example: file
+        else
+        {
+            // Create copy of path
+            char pathCopy[BUFF_SIZE];
+            strcpy(pathCopy, path);
+            // Change path to './' then add pathCopy to it
+            strcpy(path, "./");
+            strcat(path, pathCopy);
+        }
+
+        // Delete file or folder in path given
+        if (unlink(path) != 0)
+        {
+            if (rmdir(path) != 0)
+            {
+                printf("kaliShell: delete: '%s': No such file or directory\n", path);
+            }
+        }
+    }
+    // Path starts and ends with quotes
+    // Example: delete "file name" OR delete "mnt/d/file"
+    else if (strncmp(args[1], "\"", 1) == 0 && lastArgument[strlen(lastArgument) - 1] == '\"')
+    {
+        // Add args[1] excluding first quote to path string
+        strcpy(path, args[1] + 1);
+
+        // Add more arguments to path string as long as previous argument did not end in quote
+        for (int i = 2; args[i - 1][strlen(args[i - 1]) - 1] != '\"'; i++)
+        {
+            strcat(path, " ");     // Add space between arguments
+            strcat(path, args[i]); // Add current argument
+        }
+        // Remove last quote ('"') from end of destination string
+        path[strlen(path) - 1] = '\0';
+
+        // If path contains slash (meaning a full file path)
+        // Example: mnt/d/Ariel/file
+        if (containsSlash(path))
+        {
+            // Move path one ahead and add slash to the beginning
+            memmove(path + 1, path, strlen(path) + 1);
+            path[0] = '/';
+        }
+        // If path does not contain slash (meaning file name in current folder)
+        // Example: file
+        else
+        {
+            // Create copy of path
+            char pathCopy[BUFF_SIZE];
+            strcpy(pathCopy, path);
+            // Change path to './' then add pathCopy to it
+            strcpy(path, "./");
+            strcat(path, pathCopy);
+        }
+
+        printf("path: %s\n", path);
+        // Delete file or folder in path given
+        if (unlink(path) != 0)
+        {
+            if (rmdir(path) != 0)
+            {
+                printf("kaliShell: delete: '%s': No such file or directory\n", path);
+            }
+        }
+    }
+    else
+    {
+        puts("kaliShell: delete: Invalid path or file name format");
+        return;
+    }
+}
+
+// mypipe - Child processes function
+void mypipe(char **args1, char **args2)
+{
+    // Create an array for file descriptors
+    int fileDescs[2];
+
+    // Create a pipe (two file descriptors are stored in fileDescs)
+    // fileDesc[1] can read from fielDesc[0]
+    if (pipe(fileDescs) != 0)
+    {
+        // Error handling if pipe failed
+        puts("kaliShell: mypipe: Pipe failed");
+        return;
+    }
+
+    // Fork the parent process into child process
+    // Child processes don't use program's main functions, but system commands
+    // Example: 'ls -l | grep file'
+    // Will work, even though I don't have ls -l in my program
+    if (fork() == 0)
+    {
+        // First child process
+        // Close the read descriptor of the pipe (it is not needed for this part)
+        close(fileDescs[0]);
+        // Assign STDOUT to the write descriptor of the pipe
+        dup2(fileDescs[1], STDOUT_FILENO);
+        // Close unused file descriptors
+        close(fileDescs[1]);
+
+        // Execute args1 command
+        if (execvp(args1[0], args1) == -1)
+        {
+            puts("kaliShell: mypipe: Executing first command failed");
+            return;
+        }
+    }
+    else
+    {
+        // Fork again to create the second child process
+        if (fork() == 0)
+        {
+            // Second child process
+            // Close the write descriptor of the pipe (it is not needed for this part)
+            close(fileDescs[1]);
+            // Assign STDIN to the read descriptor of the pipe
+            dup2(fileDescs[0], STDIN_FILENO);
+            // Close unused file descriptors
+            close(fileDescs[0]);
+
+            // Execute args2 command
+            if (execvp(args2[0], args2) == -1)
+            {
+                puts("kaliShell: mypipe: Executing second command failed");
+                return;
+            }
+        }
+        else
+        {
+            // Close both descriptors of the pipe in the parent process
+            close(fileDescs[0]);
+            close(fileDescs[1]);
+            // Wait for both child processes to finish
+            wait(NULL);
+            wait(NULL);
+        }
+    }
+}
+
+// move - Function to move a file to a folder
+void move(char **args)
+{
+    // Check if args has arguments after "move"
+    if (args[1] == NULL)
+    {
+        puts("kaliShell: move: No file provided");
+        return;
+    }
+    if (args[2] == NULL)
+    {
+        puts("kaliShell: move: Destination not provided");
+        return;
+    }
+
+    // Get last argument in args to later check if ends with quote ('"')
+    char *lastArgument = NULL;
+    for (int i = 1; args[i] != NULL; i++)
+    {
+        lastArgument = args[i];
+    }
+
+    // Allocate memory for file and destination folder (for file and folder names with spaces)
+    char file[BUFF_SIZE];
+    char destination[BUFF_SIZE];
+
+    // Declare last file name index variable
+    int lastFileIndex = 1;
+    // Find last file name index if file starts with quote
+    if (strncmp(args[1], "\"", 1) == 0 && args[1][strlen(args[1]) - 1] != '\"')
+    {
+        for (int i = 1; args[i][strlen(args[i]) - 1] != '\"' && args[i + 1] != NULL; i++)
+        {
+            lastFileIndex++;
+        }
+
+        // If last file name index reached last argument - invalid source name format
+        if (args[lastFileIndex] == lastArgument)
+        {
+            puts("kaliShell: move: Invalid file name format");
+            return;
+        }
+    }
+
+    // Error handling if both file name and destination don't start with quotes ('"')
+    if (strncmp(args[1], "\"", 1) != 0 && strncmp(args[2], "\"", 1) != 0)
+    {
+        // Any of them end with quote
+        // Example inputs: 'move file" destination' or 'move file destination"'
+        if (args[1][strlen(args[1]) - 1] == '\"' || args[2][strlen(args[2]) - 1] == '\"')
+        {
+            puts("kaliShell: move: Invalid file name format");
+            return;
+        }
+
+        // More than three arguments inputed
+        // Example input: move source destination hello
+        if (args[3] != NULL)
+        {
+            puts("kaliShell: move: Too many arguments");
+            return;
+        }
+    }
+
+    // File name without quotes ('"') - File name without spaces
+    // Does not start or end with quotes
+    // Example input: move source destination
+    if (strncmp(args[1], "\"", 1) != 0 && args[1][strlen(args[1]) - 1] != '\"')
+    {
+        // Copy file name provided in args[1] into file variable
+        strcpy(file, args[1]);
+    }
+    // File name with quotes ('"') - File name with spaces
+    // and is not a single argument file name (check with last source index)
+    // Example input: move "file name" destination
+    else if (strncmp(args[1], "\"", 1) == 0)
+    {
+        // Add first argument to file string excluding the first quote
+        strcpy(file, args[1] + 1);
+
+        // If current file string does not end with quote
+        if (file[strlen(file) - 1] != '\"')
+        {
+            // Add more arguments to file string as long as previous argument did not end in quote
+            for (int i = 2; args[i - 1][strlen(args[i - 1]) - 1] != '\"'; i++)
+            {
+                strcat(file, " ");     // Add space between arguments
+                strcat(file, args[i]); // Add current argument
+            }
+        }
+
+        // Error handling if file name does not end with quote
+        if (file[strlen(file) - 1] != '\"')
+        {
+            puts("kaliShell: move: Invalid source file name format");
+            return;
+        }
+        // Remove last quote ('"') from end of file string
+        file[strlen(file) - 1] = '\0';
+
+        printf("File: %s\n", file);
+
+        // Open source file for reading using source string
+        if ((src = fopen(source, "r")) == NULL)
+        {
+            printf("kaliShell: cp: Error reading file '%s'\n", source);
+            return;
+        }
+    }
+    else
+    {
+        puts("kaliShell: cp: Invalid source file name format");
+        return;
+    }
 }
 
 void logout()

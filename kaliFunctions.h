@@ -20,7 +20,12 @@ char *getInputFromUser();
 char **splitArguments(char *);
 
 void getLocation();
+void echo(char **);
 void ls();
+void grep(char *);
 void cd(char **);
-void cp(char **arguments);
+void cp(char **);
+void delete(char **);
+void mypipe(char **, char **);
+void move(char **);
 void logout();
