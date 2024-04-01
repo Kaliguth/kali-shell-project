@@ -52,6 +52,8 @@ It implements not all, but some of the original shell's commands, such as:
 
 **Every function includes error handling and returns error messages accordingly when errors are encountered**
 
+</br>
+
 ### Welcome
 
 The welcome function prints a message when first running the program.</br>
