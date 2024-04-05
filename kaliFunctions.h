@@ -25,7 +25,7 @@ void ls();
 void grep(char *);
 void cd(char **);
 void cp(char **);
-void delete(char **);
+void rm(char **);
 void mypipe(char **, char **);
 void move(char **);
 void echoappend(char **);

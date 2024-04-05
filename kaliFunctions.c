@@ -161,13 +161,14 @@ void echo(char **args)
 }
 
 // ls - Function to show files in current working directory
+// Implemented for testing purposes
 void ls()
 {
     // Open the current working directory
     DIR *dir = opendir(".");
     if (dir == NULL)
     {
-        puts("kaliShell: ls: Error - Current working directory path not found.");
+        puts("kaliShell: ls: Current working directory path not found.");
         return;
     }
 
@@ -183,8 +184,8 @@ void ls()
 }
 
 // grep - Function to print files or lines containing given string
-// This function is not used in main
-// mypipe of ls with grep uses external grep automatically
+// This function is not used in main, implemented for testing purposes
+// mypipe of ls with grep uses external grep, not this function
 void grep(char *str)
 {
     // Error handling if grep string is null or empty
@@ -199,10 +200,10 @@ void grep(char *str)
     // Read lines from stdin until the end of the file
     while (fgets(line, sizeof(line), stdin) != NULL)
     {
-        // Search for the pattern in the line
+        // Search for the string given in the line
         if (strstr(line, str) != NULL)
         {
-            // If pattern found, print the line
+            // If string found, print the line
             printf("%s", line);
         }
     }
@@ -261,12 +262,11 @@ void cd(char **args)
         }
     }
     // cd arguments without quotes ('"') - Navigate to input path
-    // This expects full paths
     // If full path was not provided, attempts to navigate to input path from current directory
     // Example input: cd mnt/c:/folder
-    else if (strncmp(args[1], "\"", 1) != 0)
+    else if (strncmp(args[1], "\"", 1) != 0 && args[1][strlen(args[1]) - 1] != '\"')
     {
-        strcpy(newPath, "/");     // Add space in the beginning of path
+        strcpy(newPath, "/");     // Add slash to the beginning of path
         strcat(newPath, args[1]); // Copy input path into newPath
 
         // If input contains more arguments
@@ -274,6 +274,7 @@ void cd(char **args)
         if (args[2] != NULL)
         {
             puts("kaliShell: cd: Too many arguments");
+            return;
         }
         else
         {
@@ -288,18 +289,19 @@ void cd(char **args)
                 // Try navigating to newPath from current directory
                 if (chdir(newPath) != 0)
                 {
-                    printf("kaliShell: cd: '%s': No such file or directory\n", newPath + 2);
+                    puts("kaliShell: cd: No such file or directory");
+                    return;
                 }
             }
         }
     }
     // cd arguments with quotes ('"') - Navigate to folder in existing path
-    // Intended to accept only folder names in current directory
     // If given argument starts with '"', contains path and ends with '"'
+    // If full path was not provided, attempts to navigate to input path from current directory
     // Example input: cd "folder name"
     else if (args[1][0] == '\"' && args[1][1] != '\0' && lastArgument[strlen(lastArgument) - 1] == '\"')
     {
-        strcpy(newPath, "./");
+        strcpy(newPath, "/");
         strcat(newPath, args[1] + 1); // Add first argument to newPath excluding the first quote
 
         for (int i = 2; args[i] != NULL; i++)
@@ -309,10 +311,20 @@ void cd(char **args)
         }
         newPath[strlen(newPath) - 1] = '\0'; // Remove last quote ('"') from end of path string
 
-        // Change directory to the extracted folder name
+        // Change directory to the given folder name
         if (chdir(newPath) != 0)
         {
-            printf("kaliShell: cd: '%s': No such file or directory\n", newPath + 2);
+            // If navigating to new path was intended from current directory by the user
+            // Move newPath one address ahead and add a dot to the beginning
+            memmove(newPath + 1, newPath, strlen(newPath) + 1);
+            newPath[0] = '.';
+
+            // Try navigating to newPath from current directory
+            if (chdir(newPath) != 0)
+            {
+                puts("kaliShell: cd: No such file or directory");
+                return;
+            }
         }
     }
     else
@@ -394,11 +406,23 @@ void cp(char **args)
     // Example input: cp source destination
     if (strncmp(args[1], "\"", 1) != 0 && args[1][strlen(args[1]) - 1] != '\"')
     {
-        // Open source file provided in args[1] for reading
-        if ((src = fopen(args[1], "r")) == NULL)
+        strcpy(source, "/");     // Add slash to the beginning of source string
+        strcat(source, args[1]); // Add given path to source string
+
+        // Open source file provided for reading
+        if ((src = fopen(source, "r")) == NULL)
         {
-            printf("kaliShell: cp: Error reading file '%s'\n", args[1]);
-            return;
+            // If source file path is in current directory
+            // Move source one address ahead and add a dot to the beginning
+            memmove(source + 1, source, strlen(source) + 1);
+            source[0] = '.';
+
+            // Try opening source from current directory
+            if ((src = fopen(source, "r")) == NULL)
+            {
+                puts("kaliShell: cp: Error reading source file");
+                return;
+            }
         }
     }
     // Source file with quotes ('"') - File name with spaces
@@ -406,8 +430,8 @@ void cp(char **args)
     // Example input: cp "source file" destination
     else if (strncmp(args[1], "\"", 1) == 0)
     {
-        // Add first argument to source string excluding the first quote
-        strcpy(source, args[1] + 1);
+        strcpy(source, "/");         // Add slash to the beginning of source string
+        strcat(source, args[1] + 1); // Add first argument to source string excluding the first quote
 
         // If current source string does not end with quote
         if (source[strlen(source) - 1] != '\"')
@@ -432,8 +456,17 @@ void cp(char **args)
         // Open source file for reading using source string
         if ((src = fopen(source, "r")) == NULL)
         {
-            printf("kaliShell: cp: Error reading file '%s'\n", source);
-            return;
+            // If source file path is in current directory
+            // Move source one address ahead and add a dot to the beginning
+            memmove(source + 1, source, strlen(source) + 1);
+            source[0] = '.';
+
+            // Try opening source from current directory
+            if ((src = fopen(source, "r")) == NULL)
+            {
+                puts("kaliShell: cp: Error reading source file");
+                return;
+            }
         }
     }
     else
@@ -451,12 +484,24 @@ void cp(char **args)
     // Example input: cp source destination
     if (strncmp(args[destinationIndex], "\"", 1) != 0 && lastArgument[strlen(args[destinationIndex]) - 1] != '\"' && args[destinationIndex] == lastArgument)
     {
+        strcpy(destination, "/");                    // Add slash to the beginning of destination string
+        strcat(destination, args[destinationIndex]); // Add destination argument to destination string
+
         // Open destination file provided after last source index for writing
-        if ((des = fopen(args[destinationIndex], "w")) == NULL)
+        if ((des = fopen(destination, "w")) == NULL)
         {
-            printf("kaliShell: cp: Error writing to file '%s'\n", args[destinationIndex]);
-            fclose(src);
-            return;
+            // If destination file path is in current directory
+            // Move destination one address ahead and add a dot to the beginning
+            memmove(destination + 1, destination, strlen(destination) + 1);
+            destination[0] = '.';
+
+            // Try opening destination file from current directory
+            if ((des = fopen(destination, "w")) == NULL)
+            {
+                puts("kaliShell: cp: Error writing to destination file");
+                fclose(src);
+                return;
+            }
         }
     }
     // Destination file with quotes ('"') - File name with spaces
@@ -464,8 +509,8 @@ void cp(char **args)
     // Example input: cp source "destination file"
     else if (strncmp(args[destinationIndex], "\"", 1) == 0 && lastArgument[strlen(lastArgument) - 1] == '\"')
     {
-        // Add first destination argument to destination string excluding the first quote
-        strcpy(destination, args[destinationIndex] + 1);
+        strcpy(destination, "/");                        // Add slash to the beginning of destination string
+        strcat(destination, args[destinationIndex] + 1); // Add first destination argument to destination string excluding the first quote
 
         // If current destination string does not end with quote
         if (destination[strlen(destination) - 1] != '\"')
@@ -483,9 +528,18 @@ void cp(char **args)
         // Open destination file for writing using destination string
         if ((des = fopen(destination, "w")) == NULL)
         {
-            printf("kaliShell: cp: Error writing to file '%s'\n", destination);
-            fclose(src);
-            return;
+            // If destination file path is in current directory
+            // Move destination one address ahead and add a dot to the beginning
+            memmove(destination + 1, destination, strlen(destination) + 1);
+            destination[0] = '.';
+
+            // Try opening destination file from current directory
+            if ((des = fopen(destination, "w")) == NULL)
+            {
+                puts("kaliShell: cp: Error writing to destination file");
+                fclose(src);
+                return;
+            }
         }
     }
     else
@@ -505,13 +559,13 @@ void cp(char **args)
     fclose(des);
 }
 
-// delete - Delete files or folders by path or file name
-void delete(char **args)
+// rm - Delete files or folders by path or file name
+void rm(char **args)
 {
     // Check if args has arguments after "delete"
     if (args[1] == NULL)
     {
-        puts("kaliShell: delete: No file provided");
+        puts("kaliShell: rm: No file provided");
         return;
     }
 
@@ -539,14 +593,14 @@ void delete(char **args)
         // Example: delete file hello
         if (lastArgumentIndex != 1)
         {
-            puts("kaliShell: delete: Too many arguments");
+            puts("kaliShell: rm: Too many arguments");
             return;
         }
         // If path ends with quotes
         // Example: path/file"
         if (args[1][strlen(args[1]) - 1] == '\"')
         {
-            puts("kaliShell: delete: Invalid path or file name format");
+            puts("kaliShell: rm: Invalid path or file name format");
             return;
         }
 
@@ -575,7 +629,7 @@ void delete(char **args)
         {
             if (rmdir(path) != 0)
             {
-                printf("kaliShell: delete: '%s': No such file or directory\n", path);
+                puts("kaliShell: rm: No such file or directory");
             }
         }
     }
@@ -620,13 +674,13 @@ void delete(char **args)
         {
             if (rmdir(path) != 0)
             {
-                printf("kaliShell: delete: '%s': No such file or directory\n", path);
+                puts("kaliShell: rm: No such file or directory");
             }
         }
     }
     else
     {
-        puts("kaliShell: delete: Invalid path or file name format");
+        puts("kaliShell: rm: Invalid path or file name format");
         return;
     }
 }
@@ -705,12 +759,12 @@ void move(char **args)
     // Check if args has arguments after "move"
     if (args[1] == NULL)
     {
-        puts("kaliShell: move: No file provided");
+        puts("kaliShell: mv: No file provided");
         return;
     }
     if (args[2] == NULL)
     {
-        puts("kaliShell: move: No Destination provided");
+        puts("kaliShell: mv: No Destination provided");
         return;
     }
 
@@ -743,7 +797,7 @@ void move(char **args)
         // Example inputs: 'move file" destination' or 'move file destination"'
         if (args[1][strlen(args[1]) - 1] == '\"' || args[2][strlen(args[2]) - 1] == '\"')
         {
-            puts("kaliShell: move: Invalid file name or destination path format");
+            puts("kaliShell: mv: Invalid file name or destination path format");
             return;
         }
 
@@ -751,7 +805,7 @@ void move(char **args)
         // Example input: move source destination hello
         if (args[3] != NULL)
         {
-            puts("kaliShell: move: Too many arguments");
+            puts("kaliShell: mv: Too many arguments");
             return;
         }
     }
@@ -786,7 +840,7 @@ void move(char **args)
         // Error handling if file name does not end with quote
         if (file[strlen(file) - 1] != '\"')
         {
-            puts("kaliShell: move: Invalid source file name format");
+            puts("kaliShell: mv: Invalid source file name format");
             return;
         }
         // Remove last quote ('"') from end of file string
@@ -794,7 +848,7 @@ void move(char **args)
     }
     else
     {
-        puts("kaliShell: move: Invalid file name format");
+        puts("kaliShell: mv: Invalid file name format");
         return;
     }
 
@@ -833,7 +887,7 @@ void move(char **args)
     }
     else
     {
-        puts("kaliShell: move: Invalid destination path format");
+        puts("kaliShell: mv: Invalid destination path format");
         return;
     }
 
@@ -877,7 +931,7 @@ void move(char **args)
     if (rename(file, newDest) != 0)
     {
         // If file name or folder name are not found
-        puts("kaliShell: move: No such file or directory");
+        puts("kaliShell: mv: No such file or directory");
     }
 }
 
@@ -1233,7 +1287,7 @@ void echowrite(char **args)
     fclose(file);
 }
 
-// read - Function to read and print contents of text file
+// readfile - Function to read and print contents of text file
 void readfile(char **args)
 {
     // Check if args has a second argument
@@ -1332,20 +1386,20 @@ void wordcount(char **args)
     // Check if -l or -w options are provided in args[1]
     if (args[1] == NULL)
     {
-        puts("kaliShell: wordcount: No option provided. Please use -l for lines or -w for words");
+        puts("kaliShell: wc: No option provided. Please use -l for lines or -w for words");
         return;
     }
     // If option provided in args[1] is invalid
     if (strcmp(args[1], "-l") != 0 && strcmp(args[1], "-w") != 0)
     {
-        puts("kaliShell: wordcount: Invalid option provided. Please use -l for lines or -w for words");
+        puts("kaliShell: wc: Invalid option provided. Please use -l for lines or -w for words");
         return;
     }
 
     // Check if args has a file argument
     if (args[2] == NULL)
     {
-        puts("kaliShell: wordcount: No file provided");
+        puts("kaliShell: wc: No file provided");
         return;
     }
 
@@ -1366,7 +1420,7 @@ void wordcount(char **args)
     {
         if (args[3] != NULL)
         {
-            puts("kaliShell: wordcount: Too many arguments");
+            puts("kaliShell: wc: Too many arguments");
             return;
         }
 
@@ -1396,7 +1450,7 @@ void wordcount(char **args)
     }
     else
     {
-        puts("kaliShell: wordcount: Invalid file path format");
+        puts("kaliShell: wc: Invalid file path format");
         return;
     }
 
@@ -1413,7 +1467,7 @@ void wordcount(char **args)
     FILE *file = fopen(filePath, "r");
     if (file == NULL)
     {
-        printf("kaliShell: wordcount: '%s': File not found\n", filePath);
+        printf("kaliShell: wc: '%s': File not found\n", filePath);
         return;
     }
 

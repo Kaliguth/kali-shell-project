@@ -37,12 +37,13 @@ It implements not all, but some of the original shell's commands, such as:
 * `delete` - Delete files.
 * `pipe` - Piping commands.
 * `ls` - List folder's files and directories.
-* `grep` - Filter specific files with given string.
+* `grep` - Filter lines containing given string. **Not used in main**
 * `move` - Move files to a different folder.
 * `echo` - Print given string.
 * `echoappend` & `echowrite` - Append text or overwrite text for text files.
+* `readfile` - Read and print contents of text files.
 * `wordcount` - Count words or lines in given text files.
-* `exit` - Finally, an exit command to terminate the application
+* `logout` - Finally, an exit command to terminate the application
 
 </br>
 
@@ -56,8 +57,12 @@ It implements not all, but some of the original shell's commands, such as:
 
 ### Welcome
 
+The `welcome` function is implemented in the program's main file.</br>
+
 The welcome function prints a message when first running the program.</br>
-The message includes a dot art logo, a welcome message and a link to my github.
+The message includes a dot art logo, a welcome message and a link to my github.</br>
+
+This function is used in the `main` function.
 
 </br>
 
@@ -75,7 +80,7 @@ The next part checks if any of the arguments is a pipe symbol and changes `pipin
 
 A `numberOfArguments` variable is created to count the number of arguments. If `arguments` array is empty, `input` and `arguments` variables are freed from the memory and the current iteration is skipped. No message is outputed and no function is being used.</br>
 
-The main part of this function checks if the input starts with any of the known command names (cd, cp, ls etc.) or if pipe symbol is found in the arguments and uses required command functions as needed.</br>
+The main part of this function checks if the input starts with any of the known command callouts (cd, cp, ls etc.) or if pipe symbol is found in the arguments and uses required command functions as needed.</br>
 
 If the first argument is not one of the programmed commands, a `Command not found` message is outputed with the input given.</br>
 
@@ -91,6 +96,8 @@ The while loop only ends if the user inputed the `exit` command (one argument on
 
 It collects the current username, host name and location path of the user running the program and prints them in order and color of the original unix terminal.</br>
 
+This function is used in the `main` function to print the start of the command line.
+
 </br>
 
 ### Get input from user
@@ -103,7 +110,9 @@ The first char read is allocated into the `str` string variable using `malloc`.<
 A while loop then adds the rest of the characters ahead of `str` to create a collection of chars, while resizing the `str` variable accordingly, using `realloc`.</br>
 
 `\0` is then added to the end of `str` to declare the end of the string.</br>
-The function finally returns the `str` containing the entire input.
+The function finally returns the `str` containing the entire input.</br>
+
+This function is used in the `main` function to get an input from the user.
 
 </br>
 
@@ -117,7 +126,9 @@ It first replaces all spaces with `\0` to indicate the end of each argument, the
 
 Each argument is added by using `subStr` into a new `arguments` array. The first argument is added and then a while loop adds the rest of them.</br>
 
-Finally, `arguments` is returned.
+Finally, `arguments` is returned.</br>
+
+This function is used in the `main` function to split the input into different arguments for the commands.
 
 </br>
 
@@ -125,7 +136,9 @@ Finally, `arguments` is returned.
 
 `echo` function is implemented in the functions file.</br>
 
-This function gets an `arguments` array and prints all of them using a while loop.
+This function gets an `arguments` array and prints all of them using a while loop.</br>
+
+This function is used when the input starts with `echo`.
 
 </br>
 
@@ -133,14 +146,18 @@ This function gets an `arguments` array and prints all of them using a while loo
 
 `ls` function is implemented in the functions file.</br>
 
-This function opens folders and prints all files and folders inside it.</br>
+This function opens the current working folder and prints all files and folders inside it.</br>
 
 The function first creates a `DIR` variable called `dir` and attempts to open the current working directory into it.</br>
 It then reads it's contents into `entry` variable.</br>
 
 A while loop starts, prints each entry (file or folder) inside it in it's own line.</br>
 
-Finally, the function closes the directory in the `dir` variable.
+Finally, the function closes the directory in the `dir` variable.</br>
+
+This function is used when the input starts with `ls` and no more arguments are found after it.</br>
+
+**This function was implemented for testing purposes only**
 
 </br>
 
@@ -148,7 +165,9 @@ Finally, the function closes the directory in the `dir` variable.
 
 `grep` function is implemented in the functions file.</br>
 
-This function gets a string, goes over all of the former command's return value (e.g: ls function returning folder contents line by line) and prints the lines including given string.
+This function gets a string, goes over all of the former command's return value (e.g: ls function returning folder contents line by line) and prints the lines including given string.</br>
+
+**This function was implemented for testing purposes only and is not used in the main function**
 
 </br>
 
@@ -173,6 +192,8 @@ If a folder is given as a folder name, it will attempt to find the folder name i
 
 If a folder is given as full path, it will attempt to find the path and navigate to it directly.</br>
 
+This function is used when the input starts with `cd`.
+
 </br>
 
 ### Copy files
@@ -183,17 +204,20 @@ This function copies a given file to the given destination file.</br>
 
 The function declares variables for source `src`, destination `des`, and `ch` for characters in the file.</br>
 
-The function checks if the source file and destination file are given as a name or full path, quotes wrapping it or not, and if it contains spaces or not.</br>
+Just like `cd`, the function checks if the source file and destination file are given as a name or full path, quotes wrapping it or not, and if it contains spaces or not.</br>
+It also tries to open the files as a full path and if it does not succeed, it tries to find and open them from the current working directory by adding `./` to the beginning.
 
 After indicating whether path or name was given, it opens the source file for reading and the destination file for writing.</br>
 
-Finally, goes over source file characters and writes them one by one into the destination file.
+Finally, goes over source file characters and writes them one by one into the destination file.</br>
+
+This function is used when the input starts with `cp`.
 
 </br>
 
 ### Delete files
 
-`delete` function is implemented in the functions file.</br>
+`rm` function is implemented in the functions file.</br>
 
 This function deletes a given file or folder.</br>
 
@@ -203,7 +227,9 @@ It then checks if the file or folder is given as full path or name, quotes wrapp
 
 Adds appropriate beginning if not a path (`./` for current working directory, else `/` for full path).</br>
 
-The function then attempts to delete the file or folder.
+The function then attempts to delete the file or folder.</br>
+
+This function is used when the input starts with `rm`.
 
 </br>
 
@@ -219,7 +245,9 @@ The first command runs, then the seconds commands reads the result returned from
 
 For example: The function `ls | grep hello` - `ls` runs to show the contents of the current working folder, then `grep` reads the result of `ls` and filters it to show lines containing the string `hello`.</br>
 
-This function waits for all child processes to finish their job before ending.
+This function waits for all child processes to finish their job before ending.</br>
+
+This function is used when the input contains `pipe symbols (|)`.
 
 </br>
 
@@ -236,7 +264,9 @@ It then checks if the files or folders are given as full path or name, quotes wr
 It puts both file and destination into their variables.</br>
 If file was given as a path, it gets the file name out of it by removing the path before the last slash (`/`), and then creates a new path for the file in the new `newDest` variable by adding `destination` to it followed by the `file` name.</br>
 
-Finally, the function attempts to move the file to the new destination using the `rename` function.
+Finally, the function attempts to move the file to the new destination using the `rename` function.</br>
+
+This function is used when the input starts with `mv`.
 
 </br>
 
@@ -255,7 +285,9 @@ The function then checks if text or path were given with spaces and adds them to
 
 A variable `file` is created to open the file in append mode.</br>
 
-Finally, the function attempts to append the text into the file and closes it.
+Finally, the function attempts to append the text into the file and closes it.</br>
+
+This function is used when the input starts with `echo >>`.
 
 </br>
 
@@ -274,7 +306,9 @@ The function then checks if text or path were given with spaces and adds them to
 
 A variable `file` is created to open the file in write mode.</br>
 
-Finally, the function attempts to write the text into the file and closes it.
+Finally, the function attempts to write the text into the file and closes it.</br>
+
+This function is used when the input starts with `echo >`.
 
 </br>
 
@@ -289,7 +323,9 @@ It then checks if file was given with spaces and adds it to `filePath` variable.
 
 The function creates the `file` variable and attempts to open the file in read mode.</br>
 
-Finally, the function prints the contents of the file character by characters and closes it.
+Finally, the function prints the contents of the file character by characters and closes it.</br>
+
+This function is used when the input starts with `read`.
 
 </br>
 
@@ -309,7 +345,9 @@ The function checks if the file is given as file name or full path.</br>
 A variable named `file` is created to open the file in read mode.</br>
 The function then counts lines or words according to the option provided.</br>
 
-Finally, the appropriate result is returned.
+Finally, the appropriate result is returned.</br>
+
+This function is used when the input starts with `wc`.
 
 </br>
 
@@ -321,7 +359,9 @@ This function allows the user to terminate the program safely.
 
 The function is called when the user inputs `exit`.</br>
 
-The user is presented with a `Thank you and goodbye` message and the program terminates.
+The user is presented with a `Thank you and goodbye` message and the program terminates.</br>
+
+This function is used when the input starts with `exit` and no more arguments are found after it.
 
 </br>
 
@@ -331,7 +371,9 @@ The user is presented with a `Thank you and goodbye` message and the program ter
 
 This function trims a given string (specifically the user's `input`) of white spaces before and after the command.</br>
 
-The function first trims leading spaces, then trailing spaces accordingly and returns the string.
+The function first trims leading spaces, then trailing spaces accordingly and returns the string.</br>
+
+This function is used in the `main` function to trim white spaces from it.
 
 </br>
 
@@ -341,7 +383,7 @@ The function first trims leading spaces, then trailing spaces accordingly and re
 
 This function checks if a given string contains a slash inside it.</br>
 
-The function is used in many of the main functions to indicate if the given input file or folder is a path.</br>
+The function is used in some of the main functions to indicate if the given input file or folder is a path.</br>
 Returns a boolean.
 
 </br>

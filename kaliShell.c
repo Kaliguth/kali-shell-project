@@ -88,8 +88,8 @@ int main()
         {
             readfile(arguments);
         }
-        // Input starts with wordcount
-        else if (strcmp(trimmedInput, "wordcount") == 0)
+        // Input starts with wc
+        else if (strcmp(trimmedInput, "wc") == 0)
         {
             wordcount(arguments);
         }
@@ -103,21 +103,21 @@ int main()
         {
             cp(arguments);
         }
-        // Input starts with delete
-        else if (strcmp(trimmedInput, "delete") == 0)
+        // Input starts with rm
+        else if (strcmp(trimmedInput, "rm") == 0)
         {
-            delete (arguments);
+            rm(arguments);
         }
-        // Input starts with move
-        else if (strcmp(trimmedInput, "move") == 0)
+        // Input starts with mv
+        else if (strcmp(trimmedInput, "mv") == 0)
         {
             move(arguments);
         }
         // Handle piping
         else if (piping)
         {
-            arguments[piping] = NULL;                  // Null terminate the first command's arguments at the pipe symbol
-            mypipe(arguments, arguments + piping + 1); // Call the function to handle piping
+            arguments[piping] = NULL;                  // Remove pipe from first command
+            mypipe(arguments, arguments + piping + 1); // Call mypipe function with first and second command
             wait(NULL);                                // Wait for child processes to finish
         }
         // Command not found block
